@@ -1,0 +1,48 @@
+mydata = read.csv("DATA.csv")
+######判断剖面个数######
+#指标1：BIC
+#使用mclust包的mclustBIC看不同剖面模型的BIC
+library(mclust)
+BIC <- mclustBIC(mydata)
+plot(BIC)
+summary(BIC)
+#指标2：ICL
+#也用于判断剖面个数，对模型的不稳定性会进行惩罚，所以以ICL为标准得到的模型个数会更加稳定
+ICL <- mclustICL(mydata)
+plot(ICL)
+summary(ICL)
+#指标3：BLRT
+#第k-1 and k个模型之间是不是有差异，也就是说看看在k-1个剖面的基础上增加1个剖面后模型是不是会更好。
+mclustBootstrapLRT(mydata, modelName = "VEE")
+#######拟合模型######
+#采用Mclust函数，后面的G即为前面算出的剖面数
+mod1 <- Mclust(mydata,G = 1)
+summary(mod1)
+#########解剖面模型的可视化####
+means <- data.frame(mod1$parameters$mean, stringsAsFactors = FALSE) %>%
+  rownames_to_column() %>%
+  rename(Interest = rowname) %>%
+  melt(id.vars = "Interest", variable.name = "Profile", value.name = "Mean") %>%
+  mutate(Mean = round(Mean, 2),
+         Mean = ifelse(Mean > 1, 1, Mean))
+means <- data.frame(mod1$parameters$mean, stringsAsFactors = FALSE) %>%
+  rownames_to_column() %>%
+  rename(Interest = rowname) %>%
+  melt(id.vars = "Interest", variable.name = "Profile", value.name = "Mean") %>%
+  mutate(Mean = round(Mean, 2),
+         Mean = ifelse(Mean > 1, 1, Mean))
+
+means %>%
+  ggplot(aes(Interest, Mean, group = Profile, color = Profile)) +
+  geom_point(size = 2.25) +
+  geom_line(size = 1.25) +
+  scale_x_discrete(limits = c("Active sport", "Adrenaline sports", "Passive sport",
+                              "Countryside, outdoors", "Gardening", "Cars",
+                              "Art exhibitions", "Dancing", "Musical instruments", "Theatre", "Writing", "Reading",
+                              "Geography", "History", "Law", "Politics", "Psychology", "Religion", "Foreign languages",
+                              "Biology", "Chemistry", "Mathematics", "Medicine", "Physics", "Science and technology",
+                              "Internet", "PC",
+                              "Celebrities", "Economy Management", "Fun with friends", "Shopping", "Pets")) +
+  labs(x = NULL, y = "Standardized mean interest") +
+  theme_bw(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "top")
